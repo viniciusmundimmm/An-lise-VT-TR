@@ -1126,19 +1126,42 @@ function fileStem(){
   return 'psvt-' + TABS[S.tab].lab.toLowerCase().replace(/[^a-z]/g,'') + '-' +
          d.getFullYear() + p(d.getMonth()+1) + p(d.getDate());
 }
-$('#csv').addEventListener('click', () => {
-  const csv = '﻿' + buildCSV();
+/* Quando a página roda hospedada, o salvamento passa pelo anfitrião;
+   aberta direto do disco, cai no download comum do navegador. */
+let DL = null;
+(async () => {
   try{
-    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileStem() + '.csv';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
-    toast('CSV gerado — abra no Excel (separador ponto e vírgula).');
-  } catch(e){
-    toast('O navegador bloqueou o download. Use "Copiar" e cole no Excel.');
+    if(window.claude && typeof window.claude.use === 'function') DL = await window.claude.use('downloads');
+  } catch(e){ DL = null; }
+})();
+
+function downloadLocal(csv){
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileStem() + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+  toast('CSV gerado — abra no Excel (separador ponto e vírgula).');
+}
+
+$('#csv').addEventListener('click', async () => {
+  const csv = '﻿' + buildCSV();
+  if(DL && typeof DL.save === 'function'){
+    try{
+      const res = await DL.save({ filename: fileStem() + '.csv', data: csv });
+      if(!res || res.status === 'saved') toast('CSV salvo — abra no Excel (separador ponto e vírgula).');
+      return;
+    } catch(err){
+      const code = err && err.code;
+      if(code === 'declined') return;
+      if(code === 'rate_limited'){ toast('Já há um download aguardando confirmação.'); return; }
+      if(code === 'too_large'){ toast('Arquivo grande demais para baixar. Use "Copiar".'); return; }
+      /* demais códigos: tenta o caminho comum abaixo */
+    }
   }
+  try{ downloadLocal(csv); }
+  catch(e){ toast('O navegador bloqueou o download. Use "Copiar" e cole no Excel.'); }
 });
 $('#copy').addEventListener('click', async () => {
   const txt = buildCSV().replace(/;/g, '\t');
