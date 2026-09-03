@@ -1,0 +1,2 @@
+dist/comparador-psvt-offline.html -diff linguist-generated
+vendor/xlsx.full.min.js -diff linguist-vendored

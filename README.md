@@ -42,3 +42,28 @@ A leitura do `.xlsx` usa SheetJS via CDN, então a primeira abertura precisa de 
   pronto para o Excel em português) ou copiáveis direto para uma planilha.
 - Aba **Inconsistências**: instalação repetida no mesmo arquivo (os valores são somados),
   compensação não numérica e compensação sem número de instalação.
+
+## Arquivo autônomo para testes
+
+`dist/comparador-psvt-offline.html` é um único arquivo com a biblioteca de leitura
+embutida: baixe, dê um duplo clique e use — sem internet, sem instalação, sem servidor.
+É a versão indicada para distribuir para a equipe.
+
+`index.html` é a fonte editável e carrega a biblioteca por CDN. Depois de alterá-la,
+regenere o arquivo autônomo com:
+
+```
+python3 build.py
+```
+
+A pasta `exemplos/` traz duas planilhas de teste no formato do relatório
+(cabeçalho na linha 4, dados a partir da linha 5) que exercitam os casos difíceis:
+instalação gravada com zero à esquerda em um mês e como número no outro, valor em
+texto (`340,00` e `R$ 1.004,80`), instalação repetida com rateio parcial, valor não
+numérico e linha com compensação sem número de instalação.
+
+Resultado esperado com esses dois arquivos: 3 cessadas, 5 novas, 9 mantidas
+e 3 inconsistências.
+
+Biblioteca embutida: [SheetJS](https://sheetjs.com) 0.18.5, Apache-2.0
+(`vendor/xlsx-LICENSE.txt`).

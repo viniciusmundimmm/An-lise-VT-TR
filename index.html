@@ -577,7 +577,8 @@ function compare(){
   for(const [k, v] of A.map){
     if(B.map.has(k)){
       const b = B.map.get(k);
-      mant.push({ key:k, inst:v.inst, anterior:v.valor, atual:b.valor, delta:b.valor - v.valor, valor:b.valor });
+      /* exibe a grafia do arquivo atual: é a referência daqui para a frente */
+      mant.push({ key:k, inst:b.inst, anterior:v.valor, atual:b.valor, delta:b.valor - v.valor, valor:b.valor });
     } else {
       cess.push({ key:k, inst:v.inst, valor:v.valor, linhas:v.linhas });
     }
