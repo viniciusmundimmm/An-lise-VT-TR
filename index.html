@@ -1,0 +1,1181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparador PSVT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============================ tokens ============================ */
+:root{
+  color-scheme: light;
+  --plane:#f2f4f6;
+  --surface:#ffffff;
+  --surface-2:#f7f9fa;
+  --ink:#10151a;
+  --ink-2:#4c5560;
+  --muted:#7d8894;
+  --rule:#e2e7ec;
+  --rule-strong:#cbd3db;
+  --accent:#a8501f;
+  --accent-soft:rgba(168,80,31,.10);
+  --btn-ink:#10151a;
+  --btn-ink-text:#ffffff;
+
+  --good:#0ca30c;      --good-text:#006300;  --good-soft:rgba(12,163,12,.10);
+  --crit:#d03b3b;      --crit-text:#a82323;  --crit-soft:rgba(208,59,59,.10);
+  --keep:#2a78d6;      --keep-text:#1c5cab;  --keep-soft:rgba(42,120,214,.10);
+  --warn:#fab219;      --warn-text:#8a5c00;  --warn-soft:rgba(250,178,25,.14);
+
+  --grid:#e2e7ec;
+  --axis:#cbd3db;
+  --shadow:0 1px 2px rgba(16,21,26,.05), 0 8px 24px -18px rgba(16,21,26,.35);
+
+  --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --plane:#0d1114;
+    --surface:#161b20;
+    --surface-2:#1c2228;
+    --ink:#f2f5f8;
+    --ink-2:#b0b9c2;
+    --muted:#8794a0;
+    --rule:#242c33;
+    --rule-strong:#333d46;
+    --accent:#e08a4f;
+    --accent-soft:rgba(224,138,79,.14);
+    --btn-ink:#f2f5f8;
+    --btn-ink-text:#10151a;
+
+    --good:#0ca30c;   --good-text:#3ec93e;  --good-soft:rgba(12,163,12,.16);
+    --crit:#d03b3b;   --crit-text:#ef6f6f;  --crit-soft:rgba(208,59,59,.18);
+    --keep:#3987e5;   --keep-text:#6da7ec;  --keep-soft:rgba(57,135,229,.16);
+    --warn:#fab219;   --warn-text:#e0a52f;  --warn-soft:rgba(250,178,25,.16);
+
+    --grid:#242c33;
+    --axis:#333d46;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d1114;
+  --surface:#161b20;
+  --surface-2:#1c2228;
+  --ink:#f2f5f8;
+  --ink-2:#b0b9c2;
+  --muted:#8794a0;
+  --rule:#242c33;
+  --rule-strong:#333d46;
+  --accent:#e08a4f;
+  --accent-soft:rgba(224,138,79,.14);
+  --btn-ink:#f2f5f8;
+  --btn-ink-text:#10151a;
+
+  --good:#0ca30c;   --good-text:#3ec93e;  --good-soft:rgba(12,163,12,.16);
+  --crit:#d03b3b;   --crit-text:#ef6f6f;  --crit-soft:rgba(208,59,59,.18);
+  --keep:#3987e5;   --keep-text:#6da7ec;  --keep-soft:rgba(57,135,229,.16);
+  --warn:#fab219;   --warn-text:#e0a52f;  --warn-soft:rgba(250,178,25,.16);
+
+  --grid:#242c33;
+  --axis:#333d46;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -18px rgba(0,0,0,.8);
+}
+
+/* ============================ base ============================ */
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--plane); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:0 20px 72px}
+h1,h2,h3{margin:0; text-wrap:balance; letter-spacing:-.015em}
+button,input,select{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent);
+}
+.num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* ============================ header ============================ */
+header.top{
+  border-bottom:1px solid var(--rule); background:var(--surface);
+  box-shadow:var(--shadow); position:relative;
+}
+header.top::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--accent)}
+.top-in{max-width:1180px; margin:0 auto; padding:22px 20px 20px; display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap}
+.brand{display:flex; gap:14px; align-items:flex-start; min-width:0}
+.brand .mark{margin-top:14px}
+.mark{
+  width:38px; height:38px; flex:none; border-radius:9px; display:grid; place-items:center;
+  background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent);
+}
+.mark svg{display:block}
+h1{font-size:22px; font-weight:700}
+.sub{color:var(--ink-2); font-size:13.5px; margin-top:2px; max-width:62ch}
+.top-tools{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+/* ============================ controls ============================ */
+.btn{
+  border:1px solid var(--rule-strong); background:var(--surface); color:var(--ink);
+  padding:7px 13px; border-radius:7px; cursor:pointer; font-size:13.5px; font-weight:500;
+  transition:background .12s ease, border-color .12s ease;
+}
+.btn:hover{background:var(--surface-2); border-color:var(--muted)}
+.btn.primary{background:var(--btn-ink); color:var(--btn-ink-text); border-color:var(--btn-ink)}
+.btn.primary:hover{opacity:.88; background:var(--btn-ink)}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn.sm{padding:5px 10px; font-size:12.5px}
+select,input[type=text],input[type=number]{
+  background:var(--surface); border:1px solid var(--rule-strong); border-radius:6px;
+  padding:5px 8px; font-size:13px; max-width:100%;
+}
+input[type=number]{width:72px}
+.col-in{width:56px; font-family:var(--mono); text-transform:uppercase; text-align:center}
+
+/* ============================ loader cards ============================ */
+.loaders{display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:16px; margin-top:24px}
+.card{
+  background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.card > .card-h{
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  border-bottom:1px solid var(--rule); background:var(--surface-2);
+}
+.card-h h3{font-size:14px; font-weight:600}
+.card-h .tag{
+  margin-left:auto; font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted);
+}
+.drop{
+  margin:14px 16px; padding:18px 14px; border:1.5px dashed var(--rule-strong); border-radius:10px;
+  text-align:center; cursor:pointer; transition:border-color .12s, background .12s;
+}
+.drop:hover,.drop.over{border-color:var(--accent); background:var(--accent-soft)}
+.drop .dz-main{font-size:13.5px; font-weight:500}
+.drop .dz-sub{font-size:12px; color:var(--muted); margin-top:3px}
+.drop.filled{border-style:solid; border-color:var(--rule-strong); text-align:left; background:var(--surface-2)}
+.fname{font-family:var(--mono); font-size:12.5px; word-break:break-all}
+.fields{display:flex; flex-wrap:wrap; gap:12px 16px; padding:0 16px 14px}
+.field{display:flex; flex-direction:column; gap:4px}
+.field label{font-size:11px; font-family:var(--mono); letter-spacing:.09em; text-transform:uppercase; color:var(--muted)}
+.peek{border-top:1px solid var(--rule); padding:10px 16px 14px; font-size:12.5px}
+.peek table{width:100%; border-collapse:collapse}
+.peek th{
+  text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); font-weight:500; padding-bottom:4px;
+}
+.peek td{padding:2px 0; font-family:var(--mono); font-size:12px; color:var(--ink-2)}
+.peek td+td,.peek th+th{text-align:right}
+
+/* ============================ notices ============================ */
+.notice{
+  display:flex; gap:10px; align-items:flex-start; margin-top:20px; padding:11px 14px;
+  border-radius:9px; font-size:13.5px; border:1px solid;
+}
+.notice.info{background:var(--accent-soft); border-color:var(--accent); color:var(--ink)}
+.notice.warn{background:var(--warn-soft); border-color:var(--warn); color:var(--ink)}
+.notice .ic{font-family:var(--mono); font-weight:600; flex:none}
+.notice .btn{margin-left:auto; flex:none}
+
+/* ============================ kpis ============================ */
+.section-h{display:flex; align-items:baseline; gap:12px; margin:34px 0 12px; flex-wrap:wrap}
+.section-h h2{font-size:16px; font-weight:600}
+.section-h .hint{font-size:12.5px; color:var(--muted)}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px}
+.kpi{
+  background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+  padding:14px 16px 15px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--kc,var(--rule-strong))}
+.kpi .k-lab{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--ink-2)}
+.kpi .k-ic{font-family:var(--mono); font-weight:700; color:var(--kc,var(--ink-2))}
+.kpi .k-val{font-family:var(--mono); font-size:30px; font-weight:600; line-height:1.15; margin-top:6px; letter-spacing:-.02em}
+.kpi .k-sub{font-size:12px; color:var(--muted); margin-top:3px}
+.kpi.cess{--kc:var(--crit)} .kpi.nova{--kc:var(--good)} .kpi.mant{--kc:var(--keep)} .kpi.delta{--kc:var(--accent)}
+
+/* ============================ charts ============================ */
+.charts{display:grid; grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:16px; align-items:start}
+.chart{background:var(--surface); border:1px solid var(--rule); border-radius:12px; box-shadow:var(--shadow); padding:16px 18px 12px}
+.chart h3{font-size:14px; font-weight:600}
+.chart .c-sub{font-size:12.5px; color:var(--muted); margin-top:2px}
+.legend{display:flex; gap:14px; flex-wrap:wrap; margin:12px 0 4px}
+.lg{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2)}
+.lg .sw{width:11px; height:11px; border-radius:3px; flex:none}
+.lg .gl{font-family:var(--mono); font-weight:700; font-size:11px}
+.svg-holder{overflow-x:auto}
+svg{display:block; max-width:100%}
+svg text{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* ============================ tabs & tables ============================ */
+.tabs{display:flex; gap:2px; border-bottom:1px solid var(--rule); margin:34px 0 0; overflow-x:auto}
+.tab{
+  border:0; background:none; padding:10px 14px; cursor:pointer; font-size:13.5px; font-weight:500;
+  color:var(--ink-2); border-bottom:2px solid transparent; white-space:nowrap; display:flex; gap:7px; align-items:center;
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent); font-weight:600}
+.tab .cnt{font-family:var(--mono); font-size:11.5px; padding:1px 6px; border-radius:20px; background:var(--surface-2); border:1px solid var(--rule)}
+.tab[aria-selected="true"] .cnt{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.panel{background:var(--surface); border:1px solid var(--rule); border-top:0; border-radius:0 0 12px 12px; box-shadow:var(--shadow)}
+.panel-bar{display:flex; gap:10px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--rule); flex-wrap:wrap}
+.panel-bar .desc{font-size:12.5px; color:var(--ink-2); max-width:60ch}
+.panel-bar .grow{margin-left:auto; display:flex; gap:8px; align-items:center}
+.search{width:190px}
+.tbl-holder{overflow-x:auto; max-height:560px; overflow-y:auto}
+table.data{width:100%; border-collapse:collapse; font-size:13px}
+table.data th{
+  position:sticky; top:0; z-index:1; background:var(--surface-2); text-align:left;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted); font-weight:500; padding:9px 14px; border-bottom:1px solid var(--rule);
+  cursor:pointer; white-space:nowrap;
+}
+table.data th:hover{color:var(--ink)}
+table.data th .ar{color:var(--accent)}
+table.data td{padding:8px 14px; border-bottom:1px solid var(--rule); white-space:nowrap}
+table.data tr:last-child td{border-bottom:0}
+table.data tbody tr:hover td{background:var(--surface-2)}
+td.n,th.n{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums}
+td.id{font-family:var(--mono); font-weight:500}
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px;
+  font-size:11.5px; font-weight:600; border:1px solid;
+}
+.pill .g{font-family:var(--mono); font-weight:700}
+.pill.cess{background:var(--crit-soft); border-color:var(--crit); color:var(--crit-text)}
+.pill.nova{background:var(--good-soft); border-color:var(--good); color:var(--good-text)}
+.pill.mant{background:var(--keep-soft); border-color:var(--keep); color:var(--keep-text)}
+.pill.warn{background:var(--warn-soft); border-color:var(--warn); color:var(--warn-text)}
+.up{color:var(--good-text)} .down{color:var(--crit-text)} .flat{color:var(--muted)}
+.empty{padding:44px 20px; text-align:center; color:var(--muted); font-size:13.5px}
+.foot{padding:10px 16px; border-top:1px solid var(--rule); font-size:12px; color:var(--muted)}
+footer.pg{margin-top:40px; padding-top:18px; border-top:1px solid var(--rule); font-size:12.5px; color:var(--muted)}
+footer.pg code{font-family:var(--mono); font-size:11.5px; background:var(--surface-2); border:1px solid var(--rule); padding:1px 5px; border-radius:4px}
+
+#tip{
+  position:fixed; z-index:50; pointer-events:none; opacity:0; transition:opacity .1s;
+  background:var(--surface); color:var(--ink); border:1px solid var(--rule-strong);
+  border-radius:8px; padding:8px 11px; font-size:12.5px; box-shadow:var(--shadow); max-width:250px;
+}
+#tip .t-h{font-weight:600; margin-bottom:3px}
+#tip .t-r{font-family:var(--mono); color:var(--ink-2); font-size:12px}
+#toast{
+  position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(8px);
+  background:var(--btn-ink); color:var(--btn-ink-text); padding:9px 16px; border-radius:8px;
+  font-size:13px; opacity:0; pointer-events:none; transition:opacity .16s, transform .16s; z-index:60;
+}
+#toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 14.5 L6 9 L9.5 12 L14 4.5 L18 10.5"/>
+          <path d="M2 17.5 H18"/>
+        </svg>
+      </div>
+      <div>
+        <div class="eyebrow">PSVT &middot; conferência mensal</div>
+        <h1>Comparador PSVT</h1>
+        <p class="sub">Confronta duas planilhas mensais pela <strong>coluna N</strong> (número da instalação) e pela <strong>coluna Y</strong> (compensação mensal) e aponta o que cessou, o que iniciou e o que permaneceu.</p>
+      </div>
+    </div>
+    <div class="top-tools">
+      <div class="field">
+        <label for="unit">Unidade</label>
+        <select id="unit">
+          <option value="kWh" selected>kWh</option>
+          <option value="R$">R$</option>
+          <option value="">sem unidade</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="zeros">Zeros à esquerda</label>
+        <select id="zeros">
+          <option value="1" selected>Ignorar</option>
+          <option value="0">Considerar</option>
+        </select>
+      </div>
+      <button class="btn sm" id="theme" type="button" title="Alternar tema claro/escuro">Tema</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="loaders" id="loaders"></div>
+
+  <div id="notice"></div>
+
+  <div class="section-h">
+    <h2>Resultado da comparação</h2>
+    <span class="hint" id="scope-hint"></span>
+  </div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="section-h">
+    <h2>Evidências</h2>
+    <span class="hint">Movimentação da carteira e composição do total compensado.</span>
+  </div>
+  <div class="charts">
+    <section class="chart">
+      <h3>Composição da carteira</h3>
+      <p class="c-sub">Instalações em cada arquivo, separadas pelo que se manteve e pelo que mudou.</p>
+      <div class="legend" id="lg1"></div>
+      <div class="svg-holder"><svg id="chart1" role="img" aria-label="Composição da carteira por arquivo"></svg></div>
+    </section>
+    <section class="chart">
+      <h3>Ponte da compensação total</h3>
+      <p class="c-sub">Como o total do arquivo anterior chega ao total do arquivo atual.</p>
+      <div class="legend" id="lg2"></div>
+      <div class="svg-holder"><svg id="chart2" role="img" aria-label="Ponte da compensação total entre os dois arquivos"></svg></div>
+    </section>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div class="panel">
+    <div class="panel-bar">
+      <span class="desc" id="tab-desc"></span>
+      <div class="grow">
+        <input type="text" class="search" id="search" placeholder="Filtrar instalação…" aria-label="Filtrar por número de instalação">
+        <button class="btn sm" id="csv" type="button">Baixar CSV</button>
+        <button class="btn sm" id="copy" type="button">Copiar</button>
+      </div>
+    </div>
+    <div class="tbl-holder"><table class="data" id="tbl"><thead></thead><tbody></tbody></table></div>
+    <div class="foot" id="tfoot"></div>
+  </div>
+
+  <footer class="pg">
+    Leitura 100% local — nenhum arquivo sai deste navegador. As colunas são lidas pela posição real da planilha
+    (<code>N</code> = 14ª coluna, <code>Y</code> = 25ª), independentemente do título do cabeçalho.
+    Instalações repetidas dentro do mesmo arquivo são somadas e listadas na aba <em>Inconsistências</em>.
+  </footer>
+</div>
+
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Estado
+   ===================================================================== */
+const S = {
+  files: {
+    prev: { key:'prev', label:'Arquivo anterior', tag:'mês anterior', name:null, wb:null, sheet:null,
+            startRow:2, colInst:'N', colComp:'Y', sample:true },
+    cur:  { key:'cur',  label:'Arquivo atual',    tag:'mês atual',    name:null, wb:null, sheet:null,
+            startRow:2, colInst:'N', colComp:'Y', sample:true }
+  },
+  unit: 'kWh',
+  stripZeros: true,
+  result: null,
+  tab: 'cess',
+  sort: { key:'valor', dir:-1 },
+  query: ''
+};
+
+/* =====================================================================
+   Amostra embutida — exibida até o primeiro arquivo ser carregado
+   ===================================================================== */
+const SAMPLE = {
+  prev: [
+    ['3001456780', 412.50], ['3001456781', 158.20], ['3001456782', 1043.00],
+    ['3001456783', 87.40],  ['3001456784', 630.15], ['3001456785', 296.80],
+    ['3001456786', 74.90],  ['3001456787', 1520.35],['3001456788', 205.00],
+    ['3001456789', 388.60], ['3001456790', 912.25], ['3001456791', 63.10]
+  ],
+  cur: [
+    ['3001456780', 455.10], ['3001456782', 998.70], ['3001456783', 91.05],
+    ['3001456784', 602.40], ['3001456785', 340.00], ['3001456787', 1610.90],
+    ['3001456788', 205.00], ['3001456789', 350.25], ['3001456790', 1004.80],
+    ['3001456792', 274.30], ['3001456793', 118.65], ['3001456794', 806.00],
+    ['3001456795', 49.90]
+  ]
+};
+
+/* =====================================================================
+   Utilidades
+   ===================================================================== */
+const $ = (s, r) => (r||document).querySelector(s);
+const el = (t, c, txt) => { const n=document.createElement(t); if(c) n.className=c; if(txt!=null) n.textContent=txt; return n; };
+
+function colIndex(letters){
+  const s = String(letters||'').trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if(!s) return -1;
+  let n = 0;
+  for(const ch of s) n = n*26 + (ch.charCodeAt(0) - 64);
+  return n - 1;
+}
+function colName(i){
+  let s = '', n = i + 1;
+  while(n > 0){ const r = (n-1) % 26; s = String.fromCharCode(65+r) + s; n = Math.floor((n-1)/26); }
+  return s;
+}
+
+/** Normaliza o número da instalação para comparação entre arquivos. */
+function normInst(v){
+  if(v == null) return '';
+  let s = (typeof v === 'number') ? (Number.isInteger(v) ? String(v) : String(v)) : String(v);
+  s = s.trim().replace(/\s+/g,'').replace(/[.\-\/]/g,'').toUpperCase();
+  if(!s) return '';
+  if(S.stripZeros && /^0*\d+$/.test(s)) s = s.replace(/^0+/,'') || '0';
+  return s;
+}
+
+/** Lê número em formato brasileiro ("1.234,56", "R$ 1.234,56") ou padrão. */
+function parseNum(v){
+  if(v == null || v === '') return { n:0, ok:true, empty:true };
+  if(typeof v === 'number') return { n:v, ok:isFinite(v), empty:false };
+  if(typeof v === 'boolean') return { n:0, ok:false, empty:false };
+  let s = String(v).trim();
+  if(!s) return { n:0, ok:true, empty:true };
+  const neg = /^\(.*\)$/.test(s) || /-/.test(s);
+  s = s.replace(/[^\d,.]/g,'');
+  if(!s) return { n:0, ok:false, empty:false };
+  const hasC = s.includes(','), hasD = s.includes('.');
+  if(hasC && hasD){
+    if(s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g,'').replace(',','.');
+    else s = s.replace(/,/g,'');
+  } else if(hasC){
+    s = s.replace(/\./g,'').replace(',','.');
+  } else if(/^\d{1,3}(\.\d{3})+$/.test(s)){
+    s = s.replace(/\./g,'');
+  }
+  const n = parseFloat(s);
+  if(!isFinite(n)) return { n:0, ok:false, empty:false };
+  return { n: neg ? -Math.abs(n) : n, ok:true, empty:false };
+}
+
+const nf2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const nf0 = new Intl.NumberFormat('pt-BR');
+function fmt(n){ return nf2.format(n || 0); }
+function fmtU(n){ const u = S.unit; return u ? fmt(n) + ' ' + u : fmt(n); }
+function fmtSigned(n){ return (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)); }
+
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* =====================================================================
+   Leitura da planilha
+   ===================================================================== */
+function readWorkbook(file, key){
+  const fr = new FileReader();
+  fr.onload = e => {
+    let wb;
+    try {
+      wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true });
+    } catch(err){
+      toast('Não foi possível ler "' + file.name + '". Confirme que é um .xlsx válido.');
+      return;
+    }
+    if(!wb.SheetNames.length){ toast('A planilha "' + file.name + '" não tem abas.'); return; }
+    const f = S.files[key];
+    f.name = file.name; f.wb = wb; f.sheet = wb.SheetNames[0]; f.sample = false;
+    f.startRow = detectStart(f);
+    renderLoaders(); compare();
+  };
+  fr.onerror = () => toast('Falha ao abrir "' + file.name + '".');
+  fr.readAsArrayBuffer(file);
+}
+
+/** Procura a primeira linha em que a coluna de instalação já traz dados, não título. */
+function detectStart(f){
+  const ws = f.wb.Sheets[f.sheet];
+  if(!ws || !ws['!ref']) return 2;
+  const rg = XLSX.utils.decode_range(ws['!ref']);
+  const ci = colIndex(f.colInst);
+  const last = Math.min(rg.e.r, rg.s.r + 40);
+  for(let r = rg.s.r; r <= last; r++){
+    const c = ws[XLSX.utils.encode_cell({ r, c:ci })];
+    if(!c || c.v == null || c.v === '') continue;
+    const raw = String(c.v).trim();
+    const digits = raw.replace(/\D/g,'');
+    if(digits.length >= 4 && digits.length / raw.length > 0.6) return r + 1;
+  }
+  return rg.s.r + 2;
+}
+
+/** Extrai as linhas de um arquivo (ou da amostra) já agregadas por instalação. */
+function extract(f){
+  const out = { map:new Map(), rows:0, blank:0, bad:[], dupes:[], preview:[] };
+
+  if(f.sample){
+    for(const [inst, val] of SAMPLE[f.key]){
+      const k = normInst(inst);
+      out.rows++;
+      out.map.set(k, { inst:String(inst), valor:val, linhas:[0] });
+      if(out.preview.length < 3) out.preview.push([String(inst), val]);
+    }
+    return out;
+  }
+
+  const ws = f.wb.Sheets[f.sheet];
+  if(!ws || !ws['!ref']) return out;
+  const rg = XLSX.utils.decode_range(ws['!ref']);
+  const ci = colIndex(f.colInst), cy = colIndex(f.colComp);
+  if(ci < 0 || cy < 0) return out;
+
+  for(let r = Math.max(rg.s.r, f.startRow - 1); r <= rg.e.r; r++){
+    const a = ws[XLSX.utils.encode_cell({ r, c:ci })];
+    const b = ws[XLSX.utils.encode_cell({ r, c:cy })];
+    const rawI = a ? a.v : null;
+    const rawV = b ? (b.v !== undefined ? b.v : b.w) : null;
+    const key = normInst(rawI);
+    const linha = r + 1;
+
+    if(!key){
+      if(rawV != null && String(rawV).trim() !== ''){
+        out.blank++;
+        out.bad.push({ linha, inst:'—', valor:String(rawV), motivo:'Compensação sem número de instalação' });
+      }
+      continue;
+    }
+    out.rows++;
+    if(out.preview.length < 3) out.preview.push([String(rawI), rawV]);
+
+    const p = parseNum(rawV);
+    if(!p.ok) out.bad.push({ linha, inst:String(rawI), valor:String(rawV), motivo:'Compensação não numérica' });
+
+    const prev = out.map.get(key);
+    if(prev){
+      prev.valor += p.n; prev.linhas.push(linha);
+    } else {
+      out.map.set(key, { inst:String(rawI).trim(), valor:p.n, linhas:[linha] });
+    }
+  }
+  for(const [k, v] of out.map) if(v.linhas.length > 1) out.dupes.push({ key:k, inst:v.inst, vezes:v.linhas.length, linhas:v.linhas, valor:v.valor });
+  return out;
+}
+
+/* =====================================================================
+   Comparação
+   ===================================================================== */
+function compare(){
+  const A = extract(S.files.prev);   // anterior
+  const B = extract(S.files.cur);    // atual
+
+  const cess = [], nova = [], mant = [];
+  for(const [k, v] of A.map){
+    if(B.map.has(k)){
+      const b = B.map.get(k);
+      mant.push({ key:k, inst:v.inst, anterior:v.valor, atual:b.valor, delta:b.valor - v.valor, valor:b.valor });
+    } else {
+      cess.push({ key:k, inst:v.inst, valor:v.valor, linhas:v.linhas });
+    }
+  }
+  for(const [k, v] of B.map) if(!A.map.has(k)) nova.push({ key:k, inst:v.inst, valor:v.valor, linhas:v.linhas });
+
+  const sum = (a, f) => a.reduce((s, x) => s + (f ? f(x) : x.valor), 0);
+  const incons = []
+    .concat(A.bad.map(x => Object.assign({ arquivo:'Anterior' }, x)))
+    .concat(B.bad.map(x => Object.assign({ arquivo:'Atual' }, x)))
+    .concat(A.dupes.map(d => ({ arquivo:'Anterior', linha:d.linhas.join(', '), inst:d.inst, valor:fmt(d.valor), motivo:'Instalação repetida ' + d.vezes + '× (valores somados)' })))
+    .concat(B.dupes.map(d => ({ arquivo:'Atual', linha:d.linhas.join(', '), inst:d.inst, valor:fmt(d.valor), motivo:'Instalação repetida ' + d.vezes + '× (valores somados)' })));
+
+  S.result = {
+    A, B, cess, nova, mant, incons,
+    totalPrev: sum(Array.from(A.map.values())),
+    totalCur:  sum(Array.from(B.map.values())),
+    sumCess: sum(cess), sumNova: sum(nova),
+    varMant: sum(mant, x => x.delta),
+    sample: S.files.prev.sample && S.files.cur.sample
+  };
+  render();
+}
+
+/* =====================================================================
+   Cartões de carga
+   ===================================================================== */
+function renderLoaders(){
+  const host = $('#loaders'); host.innerHTML = '';
+  for(const key of ['prev','cur']){
+    const f = S.files[key];
+    const card = el('div','card');
+
+    const h = el('div','card-h');
+    h.appendChild(el('h3', null, f.label));
+    h.appendChild(el('span','tag', f.tag));
+    card.appendChild(h);
+
+    const drop = el('div','drop' + (f.sample ? '' : ' filled'));
+    drop.tabIndex = 0; drop.setAttribute('role','button');
+    drop.setAttribute('aria-label','Selecionar ' + f.label.toLowerCase());
+    if(f.sample){
+      drop.appendChild(el('div','dz-main','Solte o .xlsx aqui ou clique para escolher'));
+      drop.appendChild(el('div','dz-sub','Exibindo dados de exemplo até o arquivo ser carregado'));
+    } else {
+      drop.appendChild(el('div','fname', f.name));
+      drop.appendChild(el('div','dz-sub','Clique para trocar o arquivo'));
+    }
+    const inp = el('input'); inp.type='file'; inp.accept='.xlsx,.xlsm,.xls'; inp.hidden = true;
+    inp.addEventListener('change', e => { if(e.target.files[0]) readWorkbook(e.target.files[0], key); e.target.value=''; });
+    drop.addEventListener('click', () => inp.click());
+    drop.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); inp.click(); } });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('over');
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if(file) readWorkbook(file, key);
+    });
+    card.appendChild(drop); card.appendChild(inp);
+
+    const fields = el('div','fields');
+    if(!f.sample){
+      const sheets = f.wb.SheetNames.map(n => ({ v:n, t:n }));
+      fields.appendChild(mkField('Aba', mkSelect(sheets, f.sheet, v => {
+        f.sheet = v; f.startRow = detectStart(f); renderLoaders(); compare();
+      })));
+      fields.appendChild(mkField('1ª linha de dados', mkNumber(f.startRow, v => {
+        f.startRow = Math.max(1, v|0); renderLoaders(); compare();
+      })));
+    }
+    fields.appendChild(mkField('Col. instalação', mkCol(f.colInst, v => { f.colInst = v; renderLoaders(); compare(); })));
+    fields.appendChild(mkField('Col. compensação', mkCol(f.colComp, v => { f.colComp = v; renderLoaders(); compare(); })));
+    card.appendChild(fields);
+
+    const ex = extract(f);
+    const peek = el('div','peek');
+    const t = el('table');
+    const thead = el('thead'), tr = el('tr');
+    tr.appendChild(el('th', null, 'Instalação (' + f.colInst.toUpperCase() + ')'));
+    tr.appendChild(el('th', null, 'Compensação (' + f.colComp.toUpperCase() + ')'));
+    thead.appendChild(tr); t.appendChild(thead);
+    const tb = el('tbody');
+    if(ex.preview.length){
+      for(const [a, b] of ex.preview){
+        const r = el('tr');
+        r.appendChild(el('td', null, a));
+        r.appendChild(el('td', null, b == null ? '—' : (typeof b === 'number' ? fmt(b) : String(b))));
+        tb.appendChild(r);
+      }
+    } else {
+      const r = el('tr'), td = el('td', null, 'Nenhuma linha reconhecida — ajuste a 1ª linha de dados ou a coluna.');
+      td.colSpan = 2; td.style.color = 'var(--warn-text)'; r.appendChild(td); tb.appendChild(r);
+    }
+    t.appendChild(tb); peek.appendChild(t);
+    const cnt = el('div','dz-sub', ex.rows ? nf0.format(ex.map.size) + ' instalações em ' + nf0.format(ex.rows) + ' linhas lidas' : '');
+    cnt.style.marginTop = '8px';
+    peek.appendChild(cnt);
+    card.appendChild(peek);
+
+    host.appendChild(card);
+  }
+}
+function mkField(lab, ctrl){
+  const w = el('div','field');
+  const id = 'f' + Math.random().toString(36).slice(2,8);
+  const l = el('label', null, lab); l.htmlFor = id; ctrl.id = id;
+  w.appendChild(l); w.appendChild(ctrl); return w;
+}
+function mkSelect(opts, val, cb){
+  const s = el('select');
+  for(const o of opts){ const op = el('option', null, o.t); op.value = o.v; if(o.v === val) op.selected = true; s.appendChild(op); }
+  s.addEventListener('change', () => cb(s.value)); return s;
+}
+function mkNumber(val, cb){
+  const i = el('input'); i.type='number'; i.min='1'; i.value = val;
+  i.addEventListener('change', () => cb(parseInt(i.value, 10) || 1)); return i;
+}
+function mkCol(val, cb){
+  const i = el('input'); i.type='text'; i.className='col-in'; i.value = val; i.maxLength = 3;
+  i.addEventListener('change', () => {
+    const v = i.value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+    if(!v){ i.value = val; return; }
+    cb(v);
+  });
+  return i;
+}
+
+/* =====================================================================
+   Aviso de estado
+   ===================================================================== */
+function renderNotice(){
+  const host = $('#notice'); host.innerHTML = '';
+  const r = S.result; if(!r) return;
+  const pend = [];
+  if(S.files.prev.sample) pend.push('anterior');
+  if(S.files.cur.sample) pend.push('atual');
+  if(pend.length){
+    const n = el('div','notice info');
+    n.appendChild(el('span','ic','◆'));
+    const txt = pend.length === 2
+      ? 'Estes são dados de exemplo, não os seus. Carregue os dois arquivos .xlsx acima para comparar de verdade.'
+      : 'O arquivo ' + pend[0] + ' ainda é exemplo. Carregue-o para que a comparação use apenas seus dados.';
+    n.appendChild(el('span', null, txt));
+    host.appendChild(n);
+  }
+  if(r.incons.length){
+    const n = el('div','notice warn');
+    n.appendChild(el('span','ic','⚠'));
+    n.appendChild(el('span', null, nf0.format(r.incons.length) + ' linha(s) exigem conferência manual: instalação repetida, valor não numérico ou compensação sem instalação.'));
+    const b = el('button','btn sm','Ver inconsistências'); b.type = 'button';
+    b.addEventListener('click', () => { S.tab = 'inc'; render(); $('#tabs').scrollIntoView({ behavior:'smooth', block:'start' }); });
+    n.appendChild(b);
+    host.appendChild(n);
+  }
+}
+
+/* =====================================================================
+   Indicadores
+   ===================================================================== */
+function renderKPIs(){
+  const r = S.result, host = $('#kpis'); host.innerHTML = '';
+  const deltaTot = r.totalCur - r.totalPrev;
+  const items = [
+    { c:'cess', ic:'▼', lab:'Compensações cessadas', val:nf0.format(r.cess.length),
+      sub:'Estavam no anterior e sumiram do atual · ' + fmtU(r.sumCess) },
+    { c:'nova', ic:'▲', lab:'Novas compensações',    val:nf0.format(r.nova.length),
+      sub:'Não estavam no anterior e entraram no atual · ' + fmtU(r.sumNova) },
+    { c:'mant', ic:'=', lab:'Mantidas',              val:nf0.format(r.mant.length),
+      sub:'Presentes nos dois arquivos · variação ' + fmtSigned(r.varMant) + (S.unit ? ' ' + S.unit : '') },
+    { c:'delta', ic:'Σ', lab:'Compensação total',    val:fmt(r.totalCur),
+      sub:(S.unit ? S.unit + ' · ' : '') + 'anterior ' + fmt(r.totalPrev) + ' · ' + fmtSigned(deltaTot) }
+  ];
+  for(const it of items){
+    const k = el('div','kpi ' + it.c);
+    const lab = el('div','k-lab');
+    lab.appendChild(el('span','k-ic', it.ic));
+    lab.appendChild(el('span', null, it.lab));
+    k.appendChild(lab);
+    k.appendChild(el('div','k-val', it.val));
+    k.appendChild(el('div','k-sub', it.sub));
+    host.appendChild(k);
+  }
+  $('#scope-hint').textContent = S.files.prev.sample || S.files.cur.sample
+    ? 'Dados de exemplo'
+    : S.files.prev.name + '  →  ' + S.files.cur.name;
+}
+
+/* =====================================================================
+   Tooltip compartilhado
+   ===================================================================== */
+const tip = $('#tip');
+function showTip(evt, title, rows){
+  tip.innerHTML = '';
+  tip.appendChild(el('div','t-h', title));
+  for(const r of rows) tip.appendChild(el('div','t-r', r));
+  tip.style.opacity = '1';
+  moveTip(evt);
+}
+function moveTip(evt){
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if(x + w > innerWidth - 8) x = evt.clientX - w - pad;
+  if(y + h > innerHeight - 8) y = evt.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + 'px';
+  tip.style.top  = Math.max(8, y) + 'px';
+}
+function hideTip(){ tip.style.opacity = '0'; }
+function hover(node, title, rows){
+  node.style.cursor = 'default';
+  node.addEventListener('mouseenter', e => showTip(e, title, rows));
+  node.addEventListener('mousemove', moveTip);
+  node.addEventListener('mouseleave', hideTip);
+}
+
+/* SVG helpers */
+const NS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs){
+  const n = document.createElementNS(NS, tag);
+  for(const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+function svText(x, y, str, opts){
+  const o = opts || {};
+  const t = sv('text', { x, y, fill:o.fill || 'var(--muted)', 'font-size':o.size || 11,
+    'text-anchor':o.anchor || 'start', 'font-weight':o.weight || 400 });
+  t.textContent = str;
+  return t;
+}
+function niceMax(v){
+  if(v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const s = v / p;
+  const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 8, 10];
+  const step = steps.find(t => s <= t + 1e-9) || 10;
+  return step * p;
+}
+
+/* =====================================================================
+   Gráfico 1 — composição da carteira (barras empilhadas horizontais)
+   ===================================================================== */
+function renderChart1(){
+  const r = S.result;
+  const svg = $('#chart1'); svg.innerHTML = '';
+
+  $('#lg1').innerHTML = '';
+  legend('#lg1', [
+    ['var(--keep)','=','Mantidas'],
+    ['var(--crit)','▼','Cessadas'],
+    ['var(--good)','▲','Novas']
+  ]);
+
+  const W = 560, padL = 92, padR = 58, padT = 22, barH = 46, gapRow = 38, axisH = 34;
+  const H = padT + barH*2 + gapRow + axisH;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  const totA = r.mant.length + r.cess.length;
+  const totB = r.mant.length + r.nova.length;
+  const max = niceMax(Math.max(totA, totB, 1));
+  const plotW = W - padL - padR;
+  const x = v => padL + (v / max) * plotW;
+
+  for(let i = 0; i <= 4; i++){
+    const v = max * i / 4, px = x(v);
+    svg.appendChild(sv('line', { x1:px, y1:padT, x2:px, y2:padT + barH*2 + gapRow, stroke:'var(--grid)', 'stroke-width':1 }));
+    svg.appendChild(svText(px, H - 10, nf0.format(Math.round(v)), { anchor:'middle', size:10.5 }));
+  }
+  svg.appendChild(sv('line', { x1:padL, y1:padT, x2:padL, y2:padT + barH*2 + gapRow, stroke:'var(--axis)', 'stroke-width':1 }));
+  svg.appendChild(svText(padL, padT - 8, 'instalações', { size:10, fill:'var(--muted)' }));
+
+  const rows = [
+    { y:padT + 4, lab:'Anterior', segs:[
+        { n:r.mant.length, c:'var(--keep)', g:'=', name:'Mantidas' },
+        { n:r.cess.length, c:'var(--crit)', g:'▼', name:'Cessadas' } ], tot:totA },
+    { y:padT + barH + gapRow, lab:'Atual', segs:[
+        { n:r.mant.length, c:'var(--keep)', g:'=', name:'Mantidas' },
+        { n:r.nova.length, c:'var(--good)', g:'▲', name:'Novas' } ], tot:totB }
+  ];
+
+  for(const row of rows){
+    svg.appendChild(svText(padL - 12, row.y + barH/2 + 4, row.lab, { anchor:'end', size:12, fill:'var(--ink-2)', weight:600 }));
+    let cur = 0;
+    for(const s of row.segs){
+      if(s.n <= 0) continue;
+      const x0 = x(cur), x1 = x(cur + s.n);
+      const w = Math.max(2, x1 - x0 - 2);
+      const rect = sv('rect', { x:x0, y:row.y, width:w, height:barH, rx:4, fill:s.c });
+      hover(rect, s.name + ' · ' + row.lab, [
+        nf0.format(s.n) + ' instalações',
+        (row.tot ? (100 * s.n / row.tot).toFixed(1).replace('.', ',') : '0') + '% do arquivo'
+      ]);
+      svg.appendChild(rect);
+      if(w > 42){
+        svg.appendChild(svText(x0 + w/2, row.y + barH/2 + 4, nf0.format(s.n),
+          { anchor:'middle', size:12, fill:'#ffffff', weight:600 }));
+      }
+      cur += s.n;
+    }
+    const endX = x(row.tot);
+    svg.appendChild(svText(endX + 8, row.y + barH/2 + 4, nf0.format(row.tot),
+      { size:12, fill:'var(--ink-2)', weight:600 }));
+    // rótulo do segmento pequeno, quando não coube dentro da barra
+    const small = row.segs[1];
+    if(small && small.n > 0 && (x(row.tot) - x(row.segs[0].n)) <= 42){
+      svg.appendChild(svText(x(row.segs[0].n) + (x(row.tot) - x(row.segs[0].n))/2, row.y - 5,
+        small.g + ' ' + nf0.format(small.n), { anchor:'middle', size:10.5, fill:'var(--ink-2)', weight:600 }));
+    }
+  }
+}
+
+/* =====================================================================
+   Gráfico 2 — ponte da compensação total (waterfall)
+   ===================================================================== */
+function renderChart2(){
+  const r = S.result;
+  const svg = $('#chart2'); svg.innerHTML = '';
+
+  $('#lg2').innerHTML = '';
+  legend('#lg2', [
+    ['var(--muted)','Σ','Total do arquivo'],
+    ['var(--crit)','▼','Saída (cessadas)'],
+    ['var(--good)','▲','Entrada (novas)'],
+    ['var(--keep)','=','Variação das mantidas']
+  ]);
+
+  const steps = [
+    { lab:'Anterior',  type:'total', val:r.totalPrev },
+    { lab:'Cessadas',  type:'down',  val:-r.sumCess, g:'▼' },
+    { lab:'Novas',     type:'up',    val:r.sumNova,  g:'▲' },
+    { lab:'Mantidas',  type:'var',   val:r.varMant,  g:'=' },
+    { lab:'Atual',     type:'total', val:r.totalCur }
+  ];
+
+  const W = 560, padL = 66, padR = 16, padT = 26, padB = 44;
+  const H = 260, plotW = W - padL - padR, plotH = H - padT - padB;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  let run = 0; const geo = [];
+  for(const s of steps){
+    if(s.type === 'total'){ geo.push({ s, from:0, to:s.val }); run = s.val; }
+    else { geo.push({ s, from:run, to:run + s.val }); run += s.val; }
+  }
+  let hi = 0, lo = 0;
+  for(const g of geo){ hi = Math.max(hi, g.from, g.to); lo = Math.min(lo, g.from, g.to); }
+  const max = niceMax(hi || 1), min = lo < 0 ? -niceMax(-lo) : 0;
+  const y = v => padT + plotH - ((v - min) / (max - min)) * plotH;
+
+  for(let i = 0; i <= 4; i++){
+    const v = min + (max - min) * i / 4, py = y(v);
+    svg.appendChild(sv('line', { x1:padL, y1:py, x2:W - padR, y2:py, stroke:'var(--grid)', 'stroke-width':1 }));
+    svg.appendChild(svText(padL - 8, py + 3.5, nf0.format(Math.round(v)), { anchor:'end', size:10.5 }));
+  }
+  svg.appendChild(sv('line', { x1:padL, y1:y(0), x2:W - padR, y2:y(0), stroke:'var(--axis)', 'stroke-width':1 }));
+
+  const slot = plotW / steps.length, bw = Math.min(58, slot * 0.56);
+  const color = t => t === 'total' ? 'var(--muted)' : t === 'down' ? 'var(--crit)' : t === 'up' ? 'var(--good)' : 'var(--keep)';
+
+  geo.forEach((g, i) => {
+    const cx = padL + slot * i + slot / 2;
+    const yA = y(g.from), yB = y(g.to);
+    const top = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA));
+    const rect = sv('rect', { x:cx - bw/2, y:top, width:bw, height:h, rx:4, fill:color(g.s.type) });
+    const rows = g.s.type === 'total'
+      ? [fmtU(g.s.val), nf0.format(g.s.lab === 'Anterior' ? S.result.A.map.size : S.result.B.map.size) + ' instalações']
+      : [fmtSigned(g.s.val) + (S.unit ? ' ' + S.unit : ''), 'acumulado: ' + fmtU(g.to)];
+    hover(rect, g.s.lab, rows);
+    svg.appendChild(rect);
+
+    if(i > 0){
+      const prev = geo[i-1], px = padL + slot*(i-1) + slot/2;
+      svg.appendChild(sv('line', { x1:px + bw/2, y1:y(prev.to), x2:cx - bw/2, y2:y(prev.to),
+        stroke:'var(--axis)', 'stroke-width':1, 'stroke-dasharray':'3 3' }));
+    }
+    const label = g.s.type === 'total' ? fmt(g.s.val) : fmtSigned(g.s.val);
+    const above = g.s.type === 'down' || (g.s.type === 'var' && g.s.val < 0) ? top - 7 : top - 7;
+    svg.appendChild(svText(cx, above, label, { anchor:'middle', size:11.5, fill:'var(--ink)', weight:600 }));
+    svg.appendChild(svText(cx, H - 24, (g.s.g ? g.s.g + ' ' : '') + g.s.lab, { anchor:'middle', size:11, fill:'var(--ink-2)', weight:600 }));
+  });
+  svg.appendChild(svText(padL - 8, padT - 12, S.unit || 'valor', { anchor:'end', size:10, fill:'var(--muted)' }));
+}
+
+function legend(sel, items){
+  const host = $(sel);
+  for(const [c, g, name] of items){
+    const w = el('span','lg');
+    const sw = el('span','sw'); sw.style.background = c; w.appendChild(sw);
+    const gl = el('span','gl', g); gl.style.color = c; w.appendChild(gl);
+    w.appendChild(el('span', null, name));
+    host.appendChild(w);
+  }
+}
+
+/* =====================================================================
+   Abas e tabelas
+   ===================================================================== */
+const TABS = {
+  cess: { lab:'Cessadas', ic:'▼', cls:'cess',
+    desc:'Instalações que constavam no arquivo anterior e não aparecem no atual — a compensação foi cessada.',
+    cols:[
+      { k:'inst',  t:'Instalação (col. N)', type:'id' },
+      { k:'valor', t:'Compensação no anterior', type:'num' }
+    ] },
+  nova: { lab:'Novas', ic:'▲', cls:'nova',
+    desc:'Instalações que não constavam no arquivo anterior e aparecem no atual — nova compensação iniciada.',
+    cols:[
+      { k:'inst',  t:'Instalação (col. N)', type:'id' },
+      { k:'valor', t:'Compensação no atual', type:'num' }
+    ] },
+  mant: { lab:'Mantidas', ic:'=', cls:'mant',
+    desc:'Instalações presentes nos dois arquivos, com a variação de compensação entre eles.',
+    cols:[
+      { k:'inst',     t:'Instalação (col. N)', type:'id' },
+      { k:'anterior', t:'Anterior', type:'num' },
+      { k:'atual',    t:'Atual', type:'num' },
+      { k:'delta',    t:'Variação', type:'delta' }
+    ] },
+  inc: { lab:'Inconsistências', ic:'⚠', cls:'warn',
+    desc:'Linhas que a comparação não conseguiu tratar sozinha e que pedem conferência na planilha de origem.',
+    cols:[
+      { k:'arquivo', t:'Arquivo', type:'txt' },
+      { k:'linha',   t:'Linha', type:'txt' },
+      { k:'inst',    t:'Instalação', type:'id' },
+      { k:'valor',   t:'Valor lido', type:'txt' },
+      { k:'motivo',  t:'Motivo', type:'txt' }
+    ] }
+};
+function tabData(key){
+  const r = S.result;
+  return key === 'cess' ? r.cess : key === 'nova' ? r.nova : key === 'mant' ? r.mant : r.incons;
+}
+function renderTabs(){
+  const host = $('#tabs'); host.innerHTML = '';
+  for(const k in TABS){
+    const t = TABS[k], b = el('button','tab'); b.type = 'button';
+    b.setAttribute('role','tab'); b.setAttribute('aria-selected', String(S.tab === k));
+    const g = el('span', null, t.ic); g.style.fontFamily = 'var(--mono)'; g.style.fontWeight = '700';
+    g.style.color = k === 'cess' ? 'var(--crit)' : k === 'nova' ? 'var(--good)' : k === 'mant' ? 'var(--keep)' : 'var(--warn)';
+    b.appendChild(g);
+    b.appendChild(el('span', null, t.lab));
+    b.appendChild(el('span','cnt', nf0.format(tabData(k).length)));
+    b.addEventListener('click', () => {
+      S.tab = k;
+      S.sort = { key: k === 'inc' ? 'arquivo' : 'valor', dir: k === 'inc' ? 1 : -1 };
+      render();
+    });
+    host.appendChild(b);
+  }
+}
+function sortedRows(){
+  const def = TABS[S.tab];
+  let rows = tabData(S.tab).slice();
+  const q = S.query.trim().toLowerCase();
+  if(q) rows = rows.filter(r => String(r.inst || '').toLowerCase().includes(q));
+  const k = S.sort.key, d = S.sort.dir;
+  const col = def.cols.find(c => c.k === k);
+  const numeric = col && (col.type === 'num' || col.type === 'delta');
+  rows.sort((a, b) => {
+    let x = a[k], y = b[k];
+    if(numeric){ x = +x || 0; y = +y || 0; return (x - y) * d; }
+    x = String(x == null ? '' : x); y = String(y == null ? '' : y);
+    return x.localeCompare(y, 'pt-BR', { numeric:true }) * d;
+  });
+  return rows;
+}
+const ROW_CAP = 500;
+function renderTable(){
+  const def = TABS[S.tab];
+  $('#tab-desc').textContent = def.desc;
+  const tbl = $('#tbl'), thead = tbl.tHead, tb = tbl.tBodies[0] || tbl.appendChild(document.createElement('tbody'));
+  thead.innerHTML = ''; tb.innerHTML = '';
+
+  const tr = el('tr');
+  for(const c of def.cols){
+    const th = el('th', (c.type === 'num' || c.type === 'delta') ? 'n' : '');
+    th.appendChild(document.createTextNode(c.t));
+    if(S.sort.key === c.k){
+      const ar = el('span','ar', S.sort.dir === 1 ? ' ↑' : ' ↓');
+      th.appendChild(ar);
+    }
+    th.addEventListener('click', () => {
+      S.sort = (S.sort.key === c.k) ? { key:c.k, dir:-S.sort.dir } : { key:c.k, dir:(c.type === 'num' || c.type === 'delta') ? -1 : 1 };
+      renderTable();
+    });
+    tr.appendChild(th);
+  }
+  thead.appendChild(tr);
+
+  const rows = sortedRows();
+  if(!rows.length){
+    const r = el('tr'), td = el('td','empty', S.query ? 'Nenhuma instalação corresponde a "' + S.query + '".' : 'Nada nesta categoria.');
+    td.colSpan = def.cols.length; r.appendChild(td); tb.appendChild(r);
+    $('#tfoot').textContent = '0 registros';
+    return;
+  }
+  const shown = rows.slice(0, ROW_CAP);
+  for(const row of shown){
+    const tr2 = el('tr');
+    for(const c of def.cols){
+      const v = row[c.k];
+      if(c.type === 'num'){
+        tr2.appendChild(el('td','n', fmt(v)));
+      } else if(c.type === 'delta'){
+        const td = el('td','n');
+        const cls = v > 0.0001 ? 'up' : v < -0.0001 ? 'down' : 'flat';
+        const sp = el('span', cls, (v > 0.0001 ? '▲ ' : v < -0.0001 ? '▼ ' : '= ') + fmtSigned(v));
+        td.appendChild(sp); tr2.appendChild(td);
+      } else if(c.type === 'id'){
+        tr2.appendChild(el('td','id', v == null ? '—' : String(v)));
+      } else {
+        tr2.appendChild(el('td', null, v == null ? '—' : String(v)));
+      }
+    }
+    tb.appendChild(tr2);
+  }
+  let foot = nf0.format(rows.length) + ' registro(s)';
+  if(rows.length > ROW_CAP) foot += ' — exibindo os ' + ROW_CAP + ' primeiros; o CSV traz todos';
+  if(S.tab !== 'inc'){
+    const total = rows.reduce((s, r) => s + (+r.valor || 0), 0);
+    foot += ' · soma ' + fmtU(total);
+  }
+  $('#tfoot').textContent = foot;
+}
+
+/* =====================================================================
+   Exportação
+   ===================================================================== */
+function buildCSV(){
+  const def = TABS[S.tab];
+  const rows = sortedRows();
+  const esc = v => {
+    const s = v == null ? '' : String(v);
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const head = def.cols.map(c => esc(c.t)).join(';');
+  const body = rows.map(r => def.cols.map(c => {
+    const v = r[c.k];
+    if(c.type === 'num' || c.type === 'delta') return esc(fmt(+v || 0));
+    return esc(v);
+  }).join(';'));
+  return [head].concat(body).join('\r\n');
+}
+function fileStem(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return 'psvt-' + TABS[S.tab].lab.toLowerCase().replace(/[^a-z]/g,'') + '-' +
+         d.getFullYear() + p(d.getMonth()+1) + p(d.getDate());
+}
+$('#csv').addEventListener('click', () => {
+  const csv = '﻿' + buildCSV();
+  try{
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileStem() + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+    toast('CSV gerado — abra no Excel (separador ponto e vírgula).');
+  } catch(e){
+    toast('O navegador bloqueou o download. Use "Copiar" e cole no Excel.');
+  }
+});
+$('#copy').addEventListener('click', async () => {
+  const txt = buildCSV().replace(/;/g, '\t');
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('Tabela copiada — cole direto numa planilha.');
+  } catch(e){
+    toast('Não foi possível copiar. Verifique as permissões do navegador.');
+  }
+});
+$('#search').addEventListener('input', e => { S.query = e.target.value; renderTable(); });
+
+/* =====================================================================
+   Cabeçalho: unidade, zeros, tema
+   ===================================================================== */
+$('#unit').addEventListener('change', e => { S.unit = e.target.value; render(); });
+$('#zeros').addEventListener('change', e => { S.stripZeros = e.target.value === '1'; compare(); });
+$('#theme').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+});
+
+/* =====================================================================
+   Render
+   ===================================================================== */
+function render(){
+  renderNotice();
+  renderKPIs();
+  renderChart1();
+  renderChart2();
+  renderTabs();
+  renderTable();
+}
+
+renderLoaders();
+compare();
+</script>
+</body>
+</html>
